@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#111111">
+<link rel="manifest" href="manifest.json">
+<title>LangBridge</title>
+
+<style>
+:root {
+  --bg: #111;
+  --text: #fff;
+  --accent: #FFD600;
+  --font-size: 18px;
+}
+
+body {
+  margin:0;
+  font-family: sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--font-size);
+}
+
+/* MODE SIMPLE */
+#simple {
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+}
+
+#display {
+  height:80px;
+  background:#222;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+}
+
+#list {
+  flex:1;
+  overflow:auto;
+}
+
+.item {
+  padding:20px;
+  border-bottom:1px solid #333;
+  cursor:pointer;
+}
+
+/* SPLIT */
+#split {
+  display:none;
+  height:100vh;
+  flex-direction:column;
+}
+
+.half {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+
+.top {
+  transform: rotate(180deg);
+}
+
+.msg {
+  height:80px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#222;
+}
+
+.choices {
+  display:flex;
+}
+
+.choice {
+  flex:1;
+  padding:20px;
+  border:1px solid #333;
+  text-align:center;
+}
+
+/* SETTINGS */
+#settings {
+  position:fixed;
+  bottom:0;
+  width:100%;
+  background:#000;
+  padding:10px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- SIMPLE -->
+<div id="simple">
+  <div id="display">...</div>
+  <div id="list"></div>
+</div>
+
+<!-- SPLIT -->
+<div id="split">
+  <div class="half top">
+    <div class="msg" id="msg-top"></div>
+    <div class="choices" id="choices-top"></div>
+  </div>
+
+  <div class="half">
+    <div class="msg" id="msg-bottom"></div>
+    <div class="choices" id="choices-bottom"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings">
+  <button onclick="toggleMode()">Mode</button>
+  <button onclick="toggleTheme()">Theme</button>
+  <button onclick="fontUp()">A+</button>
+  <button onclick="fontDown()">A-</button>
+</div>
+
+<script>
+
+// ===== LANG =====
+let native = "fr";
+let target = "ar";
+
+// ===== DATA =====
+const ITEMS = [
+  {
+    id:"feel",
+    fr:"Comment tu te sens ?",
+    ar:"كيف تشعر؟"
+  },
+  {
+    id:"sorry",
+    fr:"Je suis désolé pour ce qu'il t'es arrivé",
+    ar:"أنا آسف لما حدث لك"
+  },
+  {
+    id:"help",
+    fr:"Tu peux m'aider ?",
+    ar:"هل يمكنك مساعدتي؟"
+  }
+];
+
+// ===== SIMPLE MODE =====
+function renderSimple() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  ITEMS.forEach(i=>{
+    const el = document.createElement("div");
+    el.className = "item";
+    el.innerText = i[native];
+
+    el.onclick = ()=>{
+      document.getElementById("display").innerText = i[target];
+      speak(i[target]);
+    };
+
+    list.appendChild(el);
+  });
+}
+
+// ===== SPLIT MODE =====
+function renderSplit() {
+  const bottom = document.getElementById("choices-bottom");
+  const top = document.getElementById("choices-top");
+
+  bottom.innerHTML="";
+  top.innerHTML="";
+
+  ITEMS.slice(0,3).forEach(i=>{
+    const btn = document.createElement("div");
+    btn.className="choice";
+    btn.innerText = i[native];
+
+    btn.onclick = ()=>{
+      document.getElementById("msg-bottom").innerText = i[native];
+      document.getElementById("msg-top").innerText = i[target];
+      speak(i[target]);
+    };
+
+    bottom.appendChild(btn);
+
+    const mirror = document.createElement("div");
+    mirror.className="choice";
+    mirror.innerText = i[target];
+
+    mirror.onclick = ()=>{
+      document.getElementById("msg-top").innerText = i[target];
+      document.getElementById("msg-bottom").innerText = i[native];
+      speak(i[native]);
+    };
+
+    top.appendChild(mirror);
+  });
+}
+
+// ===== MODE SWITCH =====
+let split = false;
+
+function toggleMode(){
+  split = !split;
+  document.getElementById("simple").style.display = split ? "none":"flex";
+  document.getElementById("split").style.display = split ? "flex":"none";
+}
+
+// ===== AUDIO =====
+function speak(text){
+  const u = new SpeechSynthesisUtterance(text);
+  speechSynthesis.speak(u);
+}
+
+// ===== SETTINGS =====
+function toggleTheme(){
+  const root = document.documentElement;
+  if(root.style.getPropertyValue("--bg")==="#fff"){
+    root.style.setProperty("--bg","#111");
+    root.style.setProperty("--text","#fff");
+  } else {
+    root.style.setProperty("--bg","#fff");
+    root.style.setProperty("--text","#000");
+  }
+}
+
+function fontUp(){
+  let size = parseInt(getComputedStyle(document.body).fontSize);
+  document.body.style.fontSize = (size+2)+"px";
+}
+function fontDown(){
+  let size = parseInt(getComputedStyle(document.body).fontSize);
+  document.body.style.fontSize = (size-2)+"px";
+}
+
+// INIT
+renderSimple();
+renderSplit();
+
+// SW
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js");
+}
+
+</script>
+</body>
+</html>
